@@ -349,18 +349,11 @@ class CycleData:
 
     @property
     def is_period_active(self) -> bool:
-        """Return True if a period is currently active."""
-        start = self.last_period_start
-        if not start:
+        """Return True if a period is currently active (started but not yet ended)."""
+        if not self.cycles:
             return False
-        # If last cycle has no end, period is active
-        if self.cycles and not self.cycles[-1].get("end_date"):
-            return True
-        # Or if end date is today or in the future for the last cycle
-        end = self.last_period_end
-        if end and start <= date.today() <= end:
-            return True
-        return False
+        last = self.cycles[-1]
+        return bool(last.get("start_date")) and not last.get("end_date")
 
     @property
     def current_phase(self) -> str:
