@@ -1,0 +1,43 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Menstrual Cycle Tracker",
+        "description": "Give your tracker a name. You can add multiple trackers for different people.",
+        "data": {
+          "name": "Tracker Name"
+        }
+      },
+      "cycle1": {
+        "title": "Most Recent Cycle",
+        "description": "Enter your most recent period dates (optional). Leave blank to skip.",
+        "data": {
+          "start_date": "Start Date (YYYY-MM-DD)",
+          "end_date": "End Date (YYYY-MM-DD)"
+        }
+      },
+      "cycle2": {
+        "title": "Second Most Recent Cycle",
+        "description": "Enter your second most recent period dates (optional). Leave blank to skip.",
+        "data": {
+          "start_date": "Start Date (YYYY-MM-DD)",
+          "end_date": "End Date (YYYY-MM-DD)"
+        }
+      },
+      "cycle3": {
+        "title": "Third Most Recent Cycle",
+        "description": "Enter your third most recent period dates (optional). Leave blank to skip.",
+        "data": {
+          "start_date": "Start Date (YYYY-MM-DD)",
+          "end_date": "End Date (YYYY-MM-DD)"
+        }
+      }
+    },
+    "error": {
+      "invalid_date": "Invalid date format. Use YYYY-MM-DD (e.g. 2026-02-02)."
+    },
+    "abort": {
+      "already_configured": "This tracker is already configured."
+    }
+  }
+}

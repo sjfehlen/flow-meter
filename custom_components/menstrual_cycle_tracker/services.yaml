@@ -1,0 +1,53 @@
+log_period_start:
+  name: Log Period Start
+  description: Log the start of a menstrual period.
+  fields:
+    date:
+      name: Date
+      description: "Date the period started (YYYY-MM-DD). Defaults to today if omitted."
+      required: false
+      example: "2026-02-02"
+      selector:
+        text:
+
+log_period_end:
+  name: Log Period End
+  description: Log the end of a menstrual period.
+  fields:
+    date:
+      name: Date
+      description: "Date the period ended (YYYY-MM-DD). Defaults to today if omitted."
+      required: false
+      example: "2026-02-06"
+      selector:
+        text:
+
+log_symptom:
+  name: Log Symptom
+  description: Log a symptom associated with the cycle.
+  fields:
+    symptom:
+      name: Symptom
+      description: Name of the symptom (e.g. cramps, headache, fatigue).
+      required: true
+      example: "cramps"
+      selector:
+        text:
+    severity:
+      name: Severity
+      description: Severity of the symptom.
+      required: false
+      example: "moderate"
+      selector:
+        select:
+          options:
+            - "mild"
+            - "moderate"
+            - "severe"
+    date:
+      name: Date
+      description: "Date of the symptom (YYYY-MM-DD). Defaults to today if omitted."
+      required: false
+      example: "2026-02-02"
+      selector:
+        text:

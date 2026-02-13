@@ -416,8 +416,7 @@ MIT License - See [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- **Issues:** [GitLab Issues](https://gitlab.com/yourusername/menstrual-cycle-tracker/-/issues)
-- **Discussions:** [GitLab Discussions](https://gitlab.com/yourusername/menstrual-cycle-tracker/-/discussions)
+- **Issues:** [GitHub Issues](https://github.com/sjfehlen/flow-meter/issues)
 - **Home Assistant Community:** [Forum Thread](https://community.home-assistant.io/)
 
 ---
