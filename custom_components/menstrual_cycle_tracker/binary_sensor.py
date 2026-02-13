@@ -12,6 +12,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
     ATTR_DAYS_ACTIVE,
+    ATTR_DAYS_LEFT_OF_PERIOD,
     ATTR_DAYS_PERIOD_END_OVERDUE,
     ATTR_LAST_PERIOD_END,
     ATTR_LAST_PERIOD_START,
@@ -84,4 +85,5 @@ class PeriodActiveSensor(BinarySensorEntity):
             ATTR_LAST_PERIOD_START: start.isoformat() if start else None,
             ATTR_LAST_PERIOD_END: end.isoformat() if end else None,
             ATTR_DAYS_PERIOD_END_OVERDUE: self._cycle_data.days_period_end_overdue,
+            ATTR_DAYS_LEFT_OF_PERIOD: self._cycle_data.days_left_of_period,
         }
