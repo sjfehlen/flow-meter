@@ -125,7 +125,7 @@ class NextPeriodSensor(CycleTrackerSensorBase):
         next_period = self._cycle_data.next_period_date
         if next_period is None:
             return None
-        return next_period.strftime("%d/%m/%y")
+        return next_period.strftime("%m/%d/%y")
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

@@ -16,11 +16,11 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def _validate_date(date_str: str) -> bool:
-    """Return True if date_str is a valid DD/MM/YY date."""
+    """Return True if date_str is a valid MM/DD/YY date."""
     if not date_str:
         return True
     try:
-        datetime.strptime(date_str, "%d/%m/%y")
+        datetime.strptime(date_str, "%m/%d/%y")
         return True
     except ValueError:
         return False
@@ -28,7 +28,7 @@ def _validate_date(date_str: str) -> bool:
 
 def _to_iso(date_str: str) -> str:
     """Convert DD/MM/YY to YYYY-MM-DD for internal storage."""
-    return datetime.strptime(date_str, "%d/%m/%y").strftime("%Y-%m-%d")
+    return datetime.strptime(date_str, "%m/%d/%y").strftime("%Y-%m-%d")
 
 
 class MenstrualCycleTrackerConfigFlow(ConfigFlow, domain=DOMAIN):

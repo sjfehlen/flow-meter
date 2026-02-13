@@ -136,11 +136,11 @@ def _register_services(hass: HomeAssistant) -> None:
         cd, eid = _resolve_tracker(hass, call)
         if cd is None:
             return
-        date_str = call.data.get("date", date.today().strftime("%d/%m/%y"))
+        date_str = call.data.get("date", date.today().strftime("%m/%d/%y"))
         try:
-            period_date = datetime.strptime(date_str, "%d/%m/%y").date()
+            period_date = datetime.strptime(date_str, "%m/%d/%y").date()
         except ValueError:
-            _LOGGER.error("Invalid date format: %s. Use DD/MM/YY (e.g. 12/02/26).", date_str)
+            _LOGGER.error("Invalid date format: %s. Use MM/DD/YY (e.g. 02/12/26).", date_str)
             return
         await cd.log_period_start(period_date)
         async_dispatcher_send(hass, f"{SIGNAL_UPDATE}_{eid}")
@@ -149,11 +149,11 @@ def _register_services(hass: HomeAssistant) -> None:
         cd, eid = _resolve_tracker(hass, call)
         if cd is None:
             return
-        date_str = call.data.get("date", date.today().strftime("%d/%m/%y"))
+        date_str = call.data.get("date", date.today().strftime("%m/%d/%y"))
         try:
-            period_date = datetime.strptime(date_str, "%d/%m/%y").date()
+            period_date = datetime.strptime(date_str, "%m/%d/%y").date()
         except ValueError:
-            _LOGGER.error("Invalid date format: %s. Use DD/MM/YY (e.g. 12/02/26).", date_str)
+            _LOGGER.error("Invalid date format: %s. Use MM/DD/YY (e.g. 02/12/26).", date_str)
             return
         await cd.log_period_end(period_date)
         async_dispatcher_send(hass, f"{SIGNAL_UPDATE}_{eid}")
@@ -162,11 +162,11 @@ def _register_services(hass: HomeAssistant) -> None:
         cd, eid = _resolve_tracker(hass, call)
         if cd is None:
             return
-        date_str = call.data.get("date", date.today().strftime("%d/%m/%y"))
+        date_str = call.data.get("date", date.today().strftime("%m/%d/%y"))
         try:
-            symptom_date = datetime.strptime(date_str, "%d/%m/%y").date()
+            symptom_date = datetime.strptime(date_str, "%m/%d/%y").date()
         except ValueError:
-            _LOGGER.error("Invalid date format: %s. Use DD/MM/YY (e.g. 12/02/26).", date_str)
+            _LOGGER.error("Invalid date format: %s. Use MM/DD/YY (e.g. 02/12/26).", date_str)
             return
         await cd.log_symptom(
             symptom_date,

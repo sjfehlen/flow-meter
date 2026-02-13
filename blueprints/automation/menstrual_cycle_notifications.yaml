@@ -5,40 +5,25 @@ blueprint:
     fertile window, PMS window, and ovulation phase. Each notification type can
     be individually enabled or disabled.
 
+    Select your tracker once — all other entities are detected automatically
+    from the same device.
+
     Set the subject and possessive fields to personalise messages for yourself
     or someone else — e.g. "You / Your" (default), "Alex / Alex's", or
     "They / Their".
   domain: automation
   input:
 
-    # ── Entities ─────────────────────────────────────────────────────────────
+    # ── Tracker ───────────────────────────────────────────────────────────────
     period_active_sensor:
-      name: Period Active (Binary Sensor)
-      description: "binary_sensor.[name]_period_active"
+      name: Cycle Tracker
+      description: >
+        Select the "Period Active" sensor for the tracker you want notifications
+        for. All other tracker entities are detected automatically.
       selector:
         entity:
           domain: binary_sensor
-
-    next_period_sensor:
-      name: Next Period (Sensor)
-      description: "sensor.[name]_next_period — must have days_until_next_period attribute"
-      selector:
-        entity:
-          domain: sensor
-
-    fertile_window_sensor:
-      name: Fertile Window (Sensor)
-      description: "sensor.[name]_fertile_window"
-      selector:
-        entity:
-          domain: sensor
-
-    current_phase_sensor:
-      name: Current Phase (Sensor)
-      description: "sensor.[name]_current_phase"
-      selector:
-        entity:
-          domain: sensor
+          integration: menstrual_cycle_tracker
 
     # ── Notification service ──────────────────────────────────────────────────
     notify_service:
@@ -79,7 +64,7 @@ blueprint:
 
     # ── Period due soon ───────────────────────────────────────────────────────
     enable_period_due:
-      name: Notify — Period Due Soon
+      name: Notify - Period Due Soon
       description: Send a notification when the period is predicted N days away.
       default: true
       selector:
@@ -97,7 +82,7 @@ blueprint:
 
     # ── Period started ────────────────────────────────────────────────────────
     enable_period_started:
-      name: Notify — Period Started
+      name: Notify - Period Started
       description: Send a notification when the period active sensor turns on.
       default: true
       selector:
@@ -105,7 +90,7 @@ blueprint:
 
     # ── Period ended ──────────────────────────────────────────────────────────
     enable_period_ended:
-      name: Notify — Period Ended
+      name: Notify - Period Ended
       description: Send a notification when the period active sensor turns off.
       default: true
       selector:
@@ -113,7 +98,7 @@ blueprint:
 
     # ── Fertile window ────────────────────────────────────────────────────────
     enable_fertile_window:
-      name: Notify — Fertile Window Started
+      name: Notify - Fertile Window Started
       description: Send a notification when the fertile window begins.
       default: true
       selector:
@@ -121,7 +106,7 @@ blueprint:
 
     # ── PMS window ────────────────────────────────────────────────────────────
     enable_pms_window:
-      name: Notify — PMS Window
+      name: Notify - PMS Window
       description: Send a daily notification during the 5-day PMS window.
       default: true
       selector:
@@ -129,7 +114,7 @@ blueprint:
 
     # ── Ovulation phase ───────────────────────────────────────────────────────
     enable_ovulation:
-      name: Notify — Ovulation Phase Started
+      name: Notify - Ovulation Phase Started
       description: Send a notification when the current phase changes to Ovulation.
       default: false
       selector:
@@ -137,7 +122,7 @@ blueprint:
 
     # ── Period start reminder ─────────────────────────────────────────────────
     enable_period_reminder:
-      name: Notify — Period Start Reminder (Confirmable)
+      name: Notify - Period Start Reminder (Confirmable)
       description: >
         On the predicted period start day, send a notification with a
         "Log it now" button. Repeats daily until the period is logged.
@@ -181,16 +166,20 @@ trigger:
     to: "off"
     id: period_ended
 
-  # Fertile window began
-  - platform: state
-    entity_id: !input fertile_window_sensor
-    to: "Yes"
+  # Fertile window began — template trigger discovers entity from integration
+  - platform: template
+    value_template: >
+      {% set entities = integration_entities('menstrual_cycle_tracker')
+         | select('search', 'fertile_window') | list %}
+      {{ entities | count > 0 and is_state(entities | first, 'Yes') }}
     id: fertile_window
 
-  # Ovulation phase
-  - platform: state
-    entity_id: !input current_phase_sensor
-    to: "Ovulation"
+  # Ovulation phase — same approach
+  - platform: template
+    value_template: >
+      {% set entities = integration_entities('menstrual_cycle_tracker')
+         | select('search', 'current_phase') | list %}
+      {{ entities | count > 0 and is_state(entities | first, 'Ovulation') }}
     id: ovulation
 
   # Daily check (period due soon + PMS window + overdue reminder)
@@ -207,11 +196,14 @@ trigger:
 
 
 # ── Variables ─────────────────────────────────────────────────────────────────
+# All entity IDs are derived automatically from the selected binary sensor's device.
 variables:
   period_active_sensor: !input period_active_sensor
-  next_period_sensor: !input next_period_sensor
-  fertile_window_sensor: !input fertile_window_sensor
-  current_phase_sensor: !input current_phase_sensor
+  _dev_id: "{{ device_id(period_active_sensor) }}"
+  _entities: "{{ device_entities(_dev_id) }}"
+  next_period_sensor: "{{ _entities | select('search', 'next_period') | first | default('') }}"
+  fertile_window_sensor: "{{ _entities | select('search', 'fertile_window') | first | default('') }}"
+  current_phase_sensor: "{{ _entities | select('search', 'current_phase') | first | default('') }}"
   notify_service: !input notify_service
   name_subject: !input name_subject
   name_possessive: !input name_possessive
@@ -263,11 +255,15 @@ action:
                 Next period predicted: {{ states(next_period_sensor) }}.
 
       # ── Fertile window ──────────────────────────────────────────────────────
+      # Confirms it is THIS device's fertile window sensor that is active.
       - conditions:
           - condition: trigger
             id: fertile_window
           - condition: template
-            value_template: "{{ enable_fertile_window }}"
+            value_template: >
+              {{ enable_fertile_window
+                 and fertile_window_sensor != ''
+                 and is_state(fertile_window_sensor, 'Yes') }}
         sequence:
           - service: "{{ notify_service }}"
             data:
@@ -277,11 +273,15 @@ action:
                 entered {{ name_possessive | lower }} fertile window today.
 
       # ── Ovulation phase ─────────────────────────────────────────────────────
+      # Confirms it is THIS device's current phase sensor that is Ovulation.
       - conditions:
           - condition: trigger
             id: ovulation
           - condition: template
-            value_template: "{{ enable_ovulation }}"
+            value_template: >
+              {{ enable_ovulation
+                 and current_phase_sensor != ''
+                 and is_state(current_phase_sensor, 'Ovulation') }}
         sequence:
           - service: "{{ notify_service }}"
             data:

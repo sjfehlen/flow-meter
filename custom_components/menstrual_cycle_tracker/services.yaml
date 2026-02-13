@@ -15,9 +15,9 @@ log_period_start:
           integration: menstrual_cycle_tracker
     date:
       name: Date
-      description: "Date the period started (DD/MM/YY, e.g. 12/02/26). Defaults to today if omitted."
+      description: "Date the period started (MM/DD/YY, e.g. 02/12/26). Defaults to today if omitted."
       required: false
-      example: "12/02/26"
+      example: "02/12/26"
       selector:
         text:
 
@@ -38,9 +38,9 @@ log_period_end:
           integration: menstrual_cycle_tracker
     date:
       name: Date
-      description: "Date the period ended (DD/MM/YY, e.g. 12/02/26). Defaults to today if omitted."
+      description: "Date the period ended (MM/DD/YY, e.g. 02/12/26). Defaults to today if omitted."
       required: false
-      example: "12/02/26"
+      example: "02/12/26"
       selector:
         text:
 
@@ -79,8 +79,8 @@ log_symptom:
             - "severe"
     date:
       name: Date
-      description: "Date of the symptom (DD/MM/YY, e.g. 12/02/26). Defaults to today if omitted."
+      description: "Date of the symptom (MM/DD/YY, e.g. 02/12/26). Defaults to today if omitted."
       required: false
-      example: "12/02/26"
+      example: "02/12/26"
       selector:
         text:
