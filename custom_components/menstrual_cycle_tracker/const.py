@@ -20,6 +20,7 @@ ATTR_LAST_PERIOD_START = "last_period_start"
 ATTR_LAST_PERIOD_END = "last_period_end"
 ATTR_DAYS_UNTIL_NEXT = "days_until_next_period"
 ATTR_DAYS_OVERDUE = "days_overdue"
+ATTR_DAYS_PERIOD_END_OVERDUE = "days_period_end_overdue"
 ATTR_IS_PMS_WINDOW = "is_pms_window"
 ATTR_CYCLE_DAY = "cycle_day"
 

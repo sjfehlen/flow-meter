@@ -433,6 +433,23 @@ class CycleData:
         return (today - predicted).days  # 0 = due today, >0 = overdue
 
     @property
+    def days_period_end_overdue(self) -> int:
+        """Days since expected period end based on average period length.
+
+        Returns -1 if no period is active.
+        Returns 0 if today is the expected last day.
+        Returns positive N if period is N days past expected length.
+        Returns negative N if N days remain before expected end.
+        """
+        if not self.is_period_active:
+            return -1
+        start = self.last_period_start
+        if not start:
+            return -1
+        days_active = (date.today() - start).days + 1
+        return days_active - self.average_period_length
+
+    @property
     def symptoms_today(self) -> list[dict[str, str]]:
         """Return symptoms logged today."""
         today = date.today().isoformat()

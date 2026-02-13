@@ -150,6 +150,26 @@ blueprint:
       selector:
         text:
 
+    # ── Period end reminder ────────────────────────────────────────────────────
+    enable_period_end_reminder:
+      name: Notify - Period End Reminder (Confirmable)
+      description: >
+        On the expected period end day, send a daily notification with a
+        "Log it now" button. Repeats until the period end is logged.
+      default: true
+      selector:
+        boolean:
+
+    period_end_reminder_action_id:
+      name: Period End Reminder Action ID
+      description: >
+        A unique identifier for the "Log period end" button action. Must be
+        different for each automation using this blueprint (e.g.
+        "LOG_PERIOD_END_ALEX" and "LOG_PERIOD_END_JORDAN" for two trackers).
+      default: "LOG_PERIOD_ENDED"
+      selector:
+        text:
+
 
 # ── Triggers ──────────────────────────────────────────────────────────────────
 trigger:
@@ -194,6 +214,13 @@ trigger:
       action: !input period_reminder_action_id
     id: period_start_confirmed
 
+  # "Log it now" button tapped on the period end reminder notification
+  - platform: event
+    event_type: mobile_app_notification_action
+    event_data:
+      action: !input period_end_reminder_action_id
+    id: period_end_confirmed
+
 
 # ── Variables ─────────────────────────────────────────────────────────────────
 # All entity IDs are derived automatically from the selected binary sensor's device.
@@ -216,11 +243,15 @@ variables:
   enable_ovulation: !input enable_ovulation
   enable_period_reminder: !input enable_period_reminder
   period_reminder_action_id: !input period_reminder_action_id
+  enable_period_end_reminder: !input enable_period_end_reminder
+  period_end_reminder_action_id: !input period_end_reminder_action_id
   tracker_for_service: !input tracker_for_service
   days_until: >
     {{ state_attr(next_period_sensor, 'days_until_next_period') | int(-1) }}
   days_overdue: >
     {{ state_attr(next_period_sensor, 'days_overdue') | int(-1) }}
+  days_period_end_overdue: >
+    {{ state_attr(period_active_sensor, 'days_period_end_overdue') | int(-1) }}
 
 
 # ── Actions ───────────────────────────────────────────────────────────────────
@@ -358,6 +389,35 @@ action:
                       - action: "{{ period_reminder_action_id }}"
                         title: "Log it now"
 
+          # Period end reminder — fires on the expected last day and every day
+          # after until the period end is logged.
+          - if:
+              - condition: template
+                value_template: >
+                  {{ enable_period_end_reminder and days_period_end_overdue >= 0
+                     and is_state(period_active_sensor, 'on') }}
+            then:
+              - service: "{{ notify_service }}"
+                data:
+                  title: >
+                    {% if days_period_end_overdue == 0 %}
+                    {{ name_possessive }} Period Expected to End Today
+                    {% else %}
+                    {{ name_possessive }} Period Is {{ days_period_end_overdue }} Day{% if days_period_end_overdue != 1 %}s{% endif %} Longer Than Usual
+                    {% endif %}
+                  message: >
+                    {% if days_period_end_overdue == 0 %}
+                    {{ name_possessive }} period is expected to end today based on average cycle data.
+                    {% else %}
+                    {{ name_possessive }} period has been running {{ days_period_end_overdue }}
+                    day{% if days_period_end_overdue != 1 %}s{% endif %} longer than average.
+                    {% endif %}
+                    Has it ended?
+                  data:
+                    actions:
+                      - action: "{{ period_end_reminder_action_id }}"
+                        title: "Log it now"
+
       # ── Period start confirmed via notification button ──────────────────────
       - conditions:
           - condition: trigger
@@ -371,6 +431,20 @@ action:
               title: "Period Logged"
               message: >
                 {{ name_possessive }} period start has been logged for today.
+
+      # ── Period end confirmed via notification button ───────────────────────
+      - conditions:
+          - condition: trigger
+            id: period_end_confirmed
+        sequence:
+          - service: menstrual_cycle_tracker.log_period_end
+            data:
+              tracker: "{{ tracker_for_service }}"
+          - service: "{{ notify_service }}"
+            data:
+              title: "Period End Logged"
+              message: >
+                {{ name_possessive }} period end has been logged for today.
 
 mode: parallel
 max: 5
