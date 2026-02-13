@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Menstrual Cycle Tracker Setup",
-        "description": "Set up your cycle tracker below. To improve prediction accuracy, enter up to 3 past periods. The more history you provide, the better the predictions will be. All date fields are optional \u2014 leave them blank to skip.",
+        "description": "Set up your cycle tracker below. To improve prediction accuracy, enter up to 3 past periods. The more history you provide, the better the predictions will be. Enter your most recent period first at the top, then work backwards. All date fields are optional \u2014 leave them blank to skip.",
         "data": {
           "name": "Tracker Name",
           "cycle1_start": "Most Recent Period \u2014 Start Date",
