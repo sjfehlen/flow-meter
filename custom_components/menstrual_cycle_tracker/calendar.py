@@ -138,16 +138,21 @@ class CycleCalendar(CalendarEntity):
                     end=event_end,
                 ))
 
-        # Next predicted period (only if no active period)
-        if not cd.is_period_active:
-            next_date = cd.next_period_date
-            if next_date:
+        # Future predicted periods - repeat forward through the requested range
+        cycle_len = cd.average_cycle_length
+        next_date = cd.next_period_date
+        if next_date:
+            # If a period is active, start predictions from the cycle after
+            if cd.is_period_active:
+                next_date = next_date + timedelta(days=cycle_len)
+            while next_date < range_end:
                 pred_end = next_date + timedelta(days=period_len)
-                if next_date < range_end and pred_end > range_start:
+                if pred_end > range_start:
                     events.append(CalendarEvent(
                         summary="Period (Predicted)",
                         start=next_date,
                         end=pred_end,
                     ))
+                next_date = next_date + timedelta(days=cycle_len)
 
         return events
