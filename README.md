@@ -145,6 +145,15 @@ The integration creates a device with these entities:
   - States: Yes/No
   - Attribute: is_pms_window
 
+- **`sensor.cycle_tracker_todays_symptoms`**
+  - Value: Number of symptoms logged today
+  - Attribute: symptoms (list of today's symptom details)
+
+### Calendar
+- **`calendar.cycle_tracker_cycle_tracker`**
+  - Shows past periods, current active period, and all future predicted periods
+  - Visible on the HA Calendar dashboard
+
 ---
 
 ## 🎮 Services
@@ -266,7 +275,23 @@ automation:
 
 ---
 
-## 📱 Dashboard Example
+## 📱 Dashboard Card
+
+A companion Lovelace card is available that visualizes your cycle data with color-coded phases, a segmented progress bar, fertile/PMS indicators, symptom chips, and cycle statistics.
+
+**Repository:** [sjfehlen/flow-meter-card](https://github.com/sjfehlen/flow-meter-card)
+
+**Install via HACS:**
+1. HACS → Frontend → Custom Repositories
+2. Add `https://github.com/sjfehlen/flow-meter-card` as **Lovelace** category
+3. Install "Menstrual Cycle Tracker Card"
+4. Reload your browser
+
+The card uses a visual editor — just select your Period Active binary sensor and customize which sections to show.
+
+### Basic Entities Card
+
+If you prefer a simple entities card:
 
 ```yaml
 type: entities
@@ -398,7 +423,7 @@ A: All data stays on your device, so there's no data transmission. However, cons
 - [ ] Statistics card with charts
 - [ ] Symptom correlation tracking
 - [ ] Multi-language support
-- [ ] Google Calendar integration
+- [x] Calendar entity with predicted periods
 - [ ] Apple Health export
 
 ---
