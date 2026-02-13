@@ -181,6 +181,30 @@ data:
   date: "2026-02-02"    # Optional, defaults to today
 ```
 
+### Edit Cycle
+```yaml
+service: menstrual_cycle_tracker.edit_cycle
+data:
+  original_start_date: "01/05/26"  # Identifies which cycle to edit
+  new_start_date: "01/06/26"       # Optional, new start date
+  new_end_date: "01/10/26"         # Optional, new end date
+```
+
+### Delete Cycle
+```yaml
+service: menstrual_cycle_tracker.delete_cycle
+data:
+  start_date: "01/05/26"  # Identifies the cycle to remove
+```
+
+### Delete Symptom
+```yaml
+service: menstrual_cycle_tracker.delete_symptom
+data:
+  date: "02/02/26"      # Date the symptom was logged
+  symptom: "cramps"     # Exact symptom name to remove
+```
+
 ---
 
 ## 🤖 Quick Automation Examples
@@ -389,8 +413,8 @@ A: With 3+ cycles: typically ±1-2 days. Gets better with more data.
 **Q: Does this work for irregular cycles?**  
 A: Yes, but predictions will be less accurate. The algorithm adapts to your pattern.
 
-**Q: Can I edit old data?**  
-A: Currently manual via the JSON file. UI editing planned for future release.
+**Q: Can I edit old data?**
+A: Yes! Use the `edit_cycle`, `delete_cycle`, and `delete_symptom` services. Identify cycles by their start date.
 
 **Q: Is this HIPAA compliant?**  
 A: All data stays on your device, so there's no data transmission. However, consult a compliance expert for your specific use case.
@@ -418,7 +442,7 @@ A: All data stays on your device, so there's no data transmission. However, cons
 
 ## 🗺️ Roadmap
 
-- [ ] Edit historical cycles via service
+- [x] Edit historical cycles via service
 - [ ] Import from CSV/JSON
 - [ ] Statistics card with charts
 - [ ] Symptom correlation tracking

@@ -6,6 +6,9 @@ DOMAIN = "menstrual_cycle_tracker"
 SERVICE_LOG_PERIOD_START = "log_period_start"
 SERVICE_LOG_PERIOD_END = "log_period_end"
 SERVICE_LOG_SYMPTOM = "log_symptom"
+SERVICE_EDIT_CYCLE = "edit_cycle"
+SERVICE_DELETE_CYCLE = "delete_cycle"
+SERVICE_DELETE_SYMPTOM = "delete_symptom"
 
 # Phase names
 PHASE_MENSTRUAL = "Menstrual"

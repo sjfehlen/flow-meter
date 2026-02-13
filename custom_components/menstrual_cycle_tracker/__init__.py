@@ -25,6 +25,9 @@ from .const import (
     PHASE_MENSTRUAL,
     PHASE_OVULATION,
     PHASE_UNKNOWN,
+    SERVICE_DELETE_CYCLE,
+    SERVICE_DELETE_SYMPTOM,
+    SERVICE_EDIT_CYCLE,
     SERVICE_LOG_PERIOD_END,
     SERVICE_LOG_PERIOD_START,
     SERVICE_LOG_SYMPTOM,
@@ -49,6 +52,30 @@ SERVICE_LOG_SYMPTOM_SCHEMA = vol.Schema(
         vol.Required("symptom"): cv.string,
         vol.Optional("severity"): vol.In(["mild", "moderate", "severe"]),
         vol.Optional("date"): cv.string,
+    }
+)
+
+SERVICE_EDIT_CYCLE_SCHEMA = vol.Schema(
+    {
+        vol.Optional("tracker"): cv.string,
+        vol.Required("original_start_date"): cv.string,
+        vol.Optional("new_start_date"): cv.string,
+        vol.Optional("new_end_date"): cv.string,
+    }
+)
+
+SERVICE_DELETE_CYCLE_SCHEMA = vol.Schema(
+    {
+        vol.Optional("tracker"): cv.string,
+        vol.Required("start_date"): cv.string,
+    }
+)
+
+SERVICE_DELETE_SYMPTOM_SCHEMA = vol.Schema(
+    {
+        vol.Optional("tracker"): cv.string,
+        vol.Required("date"): cv.string,
+        vol.Required("symptom"): cv.string,
     }
 )
 
@@ -159,6 +186,66 @@ def _register_services(hass: HomeAssistant) -> None:
         )
         async_dispatcher_send(hass, f"{SIGNAL_UPDATE}_{eid}")
 
+    async def handle_edit_cycle(call: ServiceCall) -> None:
+        cd, eid = _resolve_tracker(hass, call)
+        if cd is None:
+            return
+        try:
+            original = datetime.strptime(call.data["original_start_date"], "%m/%d/%y").date()
+        except ValueError:
+            _LOGGER.error(
+                "Invalid original_start_date: %s. Use MM/DD/YY.", call.data["original_start_date"]
+            )
+            return
+        new_start = None
+        new_end = None
+        if "new_start_date" in call.data:
+            try:
+                new_start = datetime.strptime(call.data["new_start_date"], "%m/%d/%y").date()
+            except ValueError:
+                _LOGGER.error("Invalid new_start_date: %s. Use MM/DD/YY.", call.data["new_start_date"])
+                return
+        if "new_end_date" in call.data:
+            try:
+                new_end = datetime.strptime(call.data["new_end_date"], "%m/%d/%y").date()
+            except ValueError:
+                _LOGGER.error("Invalid new_end_date: %s. Use MM/DD/YY.", call.data["new_end_date"])
+                return
+        if not await cd.edit_cycle(original, new_start, new_end):
+            _LOGGER.warning("No cycle found with start date %s.", original.isoformat())
+            return
+        async_dispatcher_send(hass, f"{SIGNAL_UPDATE}_{eid}")
+
+    async def handle_delete_cycle(call: ServiceCall) -> None:
+        cd, eid = _resolve_tracker(hass, call)
+        if cd is None:
+            return
+        try:
+            start = datetime.strptime(call.data["start_date"], "%m/%d/%y").date()
+        except ValueError:
+            _LOGGER.error("Invalid start_date: %s. Use MM/DD/YY.", call.data["start_date"])
+            return
+        if not await cd.delete_cycle(start):
+            _LOGGER.warning("No cycle found with start date %s.", start.isoformat())
+            return
+        async_dispatcher_send(hass, f"{SIGNAL_UPDATE}_{eid}")
+
+    async def handle_delete_symptom(call: ServiceCall) -> None:
+        cd, eid = _resolve_tracker(hass, call)
+        if cd is None:
+            return
+        try:
+            symptom_date = datetime.strptime(call.data["date"], "%m/%d/%y").date()
+        except ValueError:
+            _LOGGER.error("Invalid date: %s. Use MM/DD/YY.", call.data["date"])
+            return
+        if not await cd.delete_symptom(symptom_date, call.data["symptom"]):
+            _LOGGER.warning(
+                "No symptom '%s' found on %s.", call.data["symptom"], symptom_date.isoformat()
+            )
+            return
+        async_dispatcher_send(hass, f"{SIGNAL_UPDATE}_{eid}")
+
     hass.services.async_register(
         DOMAIN, SERVICE_LOG_PERIOD_START, handle_log_period_start, schema=SERVICE_LOG_PERIOD_SCHEMA
     )
@@ -167,6 +254,15 @@ def _register_services(hass: HomeAssistant) -> None:
     )
     hass.services.async_register(
         DOMAIN, SERVICE_LOG_SYMPTOM, handle_log_symptom, schema=SERVICE_LOG_SYMPTOM_SCHEMA
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_EDIT_CYCLE, handle_edit_cycle, schema=SERVICE_EDIT_CYCLE_SCHEMA
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_DELETE_CYCLE, handle_delete_cycle, schema=SERVICE_DELETE_CYCLE_SCHEMA
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_DELETE_SYMPTOM, handle_delete_symptom, schema=SERVICE_DELETE_SYMPTOM_SCHEMA
     )
 
 
@@ -177,7 +273,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.data[DOMAIN].pop(entry.entry_id)
         # Only remove services when the last tracker is unloaded.
         if not hass.data[DOMAIN]:
-            for service in [SERVICE_LOG_PERIOD_START, SERVICE_LOG_PERIOD_END, SERVICE_LOG_SYMPTOM]:
+            for service in [
+                SERVICE_LOG_PERIOD_START, SERVICE_LOG_PERIOD_END, SERVICE_LOG_SYMPTOM,
+                SERVICE_EDIT_CYCLE, SERVICE_DELETE_CYCLE, SERVICE_DELETE_SYMPTOM,
+            ]:
                 hass.services.async_remove(DOMAIN, service)
     return unload_ok
 
@@ -250,6 +349,50 @@ class CycleData:
             }
         )
         await self._async_save()
+
+    async def edit_cycle(
+        self, original_start: date, new_start: date | None, new_end: date | None
+    ) -> bool:
+        """Edit an existing cycle identified by its original start date.
+
+        Returns True if the cycle was found and updated.
+        """
+        target = original_start.isoformat()
+        for cycle in self.cycles:
+            if cycle.get("start_date") == target:
+                if new_start is not None:
+                    cycle["start_date"] = new_start.isoformat()
+                if new_end is not None:
+                    cycle["end_date"] = new_end.isoformat()
+                await self._async_save()
+                return True
+        return False
+
+    async def delete_cycle(self, start: date) -> bool:
+        """Delete a cycle identified by its start date.
+
+        Returns True if the cycle was found and removed.
+        """
+        target = start.isoformat()
+        for i, cycle in enumerate(self.cycles):
+            if cycle.get("start_date") == target:
+                self.cycles.pop(i)
+                await self._async_save()
+                return True
+        return False
+
+    async def delete_symptom(self, symptom_date: date, symptom: str) -> bool:
+        """Delete a symptom matching the date and name.
+
+        Removes the first matching entry. Returns True if found.
+        """
+        target_date = symptom_date.isoformat()
+        for i, s in enumerate(self.symptoms):
+            if s.get("date") == target_date and s.get("symptom") == symptom:
+                self.symptoms.pop(i)
+                await self._async_save()
+                return True
+        return False
 
     @property
     def completed_cycles(self) -> list[dict[str, str]]:

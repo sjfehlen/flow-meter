@@ -84,3 +84,89 @@ log_symptom:
       example: "02/12/26"
       selector:
         text:
+
+edit_cycle:
+  name: Edit Cycle
+  description: >
+    Edit an existing cycle's start or end date. Identify the cycle by its
+    current start date, then provide the new values.
+  fields:
+    tracker:
+      name: Tracker
+      description: >
+        Select the tracker. Required when multiple trackers are configured.
+      required: false
+      selector:
+        config_entry:
+          integration: menstrual_cycle_tracker
+    original_start_date:
+      name: Original Start Date
+      description: "The current start date of the cycle to edit (MM/DD/YY)."
+      required: true
+      example: "01/05/26"
+      selector:
+        text:
+    new_start_date:
+      name: New Start Date
+      description: "New start date for the cycle (MM/DD/YY). Leave blank to keep unchanged."
+      required: false
+      example: "01/06/26"
+      selector:
+        text:
+    new_end_date:
+      name: New End Date
+      description: "New end date for the cycle (MM/DD/YY). Leave blank to keep unchanged."
+      required: false
+      example: "01/10/26"
+      selector:
+        text:
+
+delete_cycle:
+  name: Delete Cycle
+  description: >
+    Delete an existing cycle. Identify the cycle by its start date.
+  fields:
+    tracker:
+      name: Tracker
+      description: >
+        Select the tracker. Required when multiple trackers are configured.
+      required: false
+      selector:
+        config_entry:
+          integration: menstrual_cycle_tracker
+    start_date:
+      name: Start Date
+      description: "The start date of the cycle to delete (MM/DD/YY)."
+      required: true
+      example: "01/05/26"
+      selector:
+        text:
+
+delete_symptom:
+  name: Delete Symptom
+  description: >
+    Delete a logged symptom. Identify it by date and symptom name.
+    If multiple entries match, the first one is removed.
+  fields:
+    tracker:
+      name: Tracker
+      description: >
+        Select the tracker. Required when multiple trackers are configured.
+      required: false
+      selector:
+        config_entry:
+          integration: menstrual_cycle_tracker
+    date:
+      name: Date
+      description: "The date the symptom was logged (MM/DD/YY)."
+      required: true
+      example: "02/02/26"
+      selector:
+        text:
+    symptom:
+      name: Symptom
+      description: "The name of the symptom to delete (must match exactly)."
+      required: true
+      example: "cramps"
+      selector:
+        text:
