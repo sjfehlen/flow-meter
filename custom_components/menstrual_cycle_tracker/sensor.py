@@ -12,6 +12,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
+    ATTR_DAYS_OVERDUE,
     ATTR_DAYS_UNTIL_NEXT,
     ATTR_IS_PMS_WINDOW,
     DOMAIN,
@@ -128,7 +129,10 @@ class NextPeriodSensor(CycleTrackerSensorBase):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        return {ATTR_DAYS_UNTIL_NEXT: self._cycle_data.days_until_next_period}
+        return {
+            ATTR_DAYS_UNTIL_NEXT: self._cycle_data.days_until_next_period,
+            ATTR_DAYS_OVERDUE: self._cycle_data.days_overdue,
+        }
 
 
 class PeriodLengthSensor(CycleTrackerSensorBase):

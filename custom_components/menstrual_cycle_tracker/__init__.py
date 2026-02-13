@@ -17,6 +17,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.storage import Store
 
 from .const import (
+    ATTR_DAYS_OVERDUE,
     ATTR_IS_PMS_WINDOW,
     DEFAULT_CYCLE_LENGTH,
     DEFAULT_PERIOD_LENGTH,
@@ -407,6 +408,29 @@ class CycleData:
         if days_until is None:
             return False
         return 0 <= days_until <= 5
+
+    @property
+    def days_overdue(self) -> int:
+        """Days since the most recently predicted period start that has passed.
+
+        Returns -1 if the period is active or the next predicted date is still
+        in the future. Returns 0 if today is the expected start day, 1 if one
+        day past, etc.
+        """
+        if self.is_period_active:
+            return -1
+        start = self.last_period_start
+        if not start:
+            return -1
+        cycle_len = self.average_cycle_length
+        predicted = start + timedelta(days=cycle_len)
+        today = date.today()
+        # Walk to the most recent predicted start that is <= today
+        while predicted + timedelta(days=cycle_len) <= today:
+            predicted += timedelta(days=cycle_len)
+        if predicted > today:
+            return -1  # Not yet due
+        return (today - predicted).days  # 0 = due today, >0 = overdue
 
     @property
     def symptoms_today(self) -> list[dict[str, str]]:
