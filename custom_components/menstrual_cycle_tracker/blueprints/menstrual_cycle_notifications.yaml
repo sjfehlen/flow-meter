@@ -4,6 +4,10 @@ blueprint:
     Send notifications for cycle events: period due soon, period started/ended,
     fertile window, PMS window, and ovulation phase. Each notification type can
     be individually enabled or disabled.
+
+    Set the subject and possessive fields to personalise messages for yourself
+    or someone else — e.g. "You / Your" (default), "Alex / Alex's", or
+    "They / Their".
   domain: automation
   input:
 
@@ -46,6 +50,25 @@ blueprint:
       selector:
         text:
 
+    # ── Pronouns / name ───────────────────────────────────────────────────────
+    name_subject:
+      name: Subject (who the tracker is for)
+      description: >
+        Used as the subject in notification messages.
+        Examples: "You", "Alex", "She", "He", "They"
+      default: "You"
+      selector:
+        text:
+
+    name_possessive:
+      name: Possessive (who the tracker belongs to)
+      description: >
+        Used as the possessive in notification messages.
+        Examples: "Your", "Alex's", "Her", "His", "Their"
+      default: "Your"
+      selector:
+        text:
+
     # ── Daily check time ──────────────────────────────────────────────────────
     daily_check_time:
       name: Daily Check Time
@@ -57,7 +80,7 @@ blueprint:
     # ── Period due soon ───────────────────────────────────────────────────────
     enable_period_due:
       name: Notify — Period Due Soon
-      description: Send a notification when your period is predicted N days away.
+      description: Send a notification when the period is predicted N days away.
       default: true
       selector:
         boolean:
@@ -153,6 +176,8 @@ variables:
   fertile_window_sensor: !input fertile_window_sensor
   current_phase_sensor: !input current_phase_sensor
   notify_service: !input notify_service
+  name_subject: !input name_subject
+  name_possessive: !input name_possessive
   period_warning_days: !input period_warning_days
   enable_period_due: !input enable_period_due
   enable_period_started: !input enable_period_started
@@ -177,9 +202,9 @@ action:
         sequence:
           - service: "{{ notify_service }}"
             data:
-              title: "Period Started"
+              title: "{{ name_possessive }} Period Started"
               message: >
-                Your period has started today. Take care of yourself 💙
+                {{ name_possessive }} period has started today. 💙
 
       # ── Period ended ────────────────────────────────────────────────────────
       - conditions:
@@ -190,10 +215,10 @@ action:
         sequence:
           - service: "{{ notify_service }}"
             data:
-              title: "Period Ended"
+              title: "{{ name_possessive }} Period Ended"
               message: >
-                Your period has ended. Next period predicted:
-                {{ states(next_period_sensor) }}.
+                {{ name_possessive }} period has ended.
+                Next period predicted: {{ states(next_period_sensor) }}.
 
       # ── Fertile window ──────────────────────────────────────────────────────
       - conditions:
@@ -206,7 +231,8 @@ action:
             data:
               title: "Fertile Window"
               message: >
-                You have entered your fertile window today.
+                {{ name_subject }} {{ "have" if name_subject in ["You", "They", "We"] else "has" }}
+                entered {{ name_possessive | lower }} fertile window today.
 
       # ── Ovulation phase ─────────────────────────────────────────────────────
       - conditions:
@@ -219,7 +245,7 @@ action:
             data:
               title: "Ovulation Phase"
               message: >
-                Your cycle has entered the Ovulation phase.
+                {{ name_possessive }} cycle has entered the Ovulation phase.
 
       # ── Daily check: period due soon + PMS window ──────────────────────────
       # Both checks run independently so both can fire on the same day.
@@ -238,7 +264,7 @@ action:
                 data:
                   title: "Period Due Soon"
                   message: >
-                    Your period is predicted to start in
+                    {{ name_possessive }} period is predicted to start in
                     {{ days_until }} day{% if days_until != 1 %}s{% endif %}
                     ({{ states(next_period_sensor) }}).
 
@@ -252,9 +278,13 @@ action:
                 data:
                   title: "PMS Window"
                   message: >
-                    You are in your PMS window —
-                    {% if days_until == 0 %}period expected today.
-                    {% else %}{{ days_until }} day{% if days_until != 1 %}s{% endif %} until your next period.
+                    {% if days_until == 0 %}
+                    {{ name_possessive }} period is expected today.
+                    {% else %}
+                    {{ name_subject }}
+                    {{ "are" if name_subject in ["You", "They", "We"] else "is" }}
+                    in {{ name_possessive | lower }} PMS window —
+                    {{ days_until }} day{% if days_until != 1 %}s{% endif %} until {{ name_possessive | lower }} next period.
                     {% endif %}
 
 mode: parallel
