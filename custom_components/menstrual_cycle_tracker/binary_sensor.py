@@ -1,6 +1,7 @@
 """Binary sensors for the Menstrual Cycle Tracker integration."""
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 
 from homeassistant.components.binary_sensor import BinarySensorEntity
@@ -78,7 +79,6 @@ class PeriodActiveSensor(BinarySensorEntity):
         end = self._cycle_data.last_period_end
         days_active = None
         if start and self._cycle_data.is_period_active:
-            from datetime import date
             days_active = (date.today() - start).days + 1
         return {
             ATTR_DAYS_ACTIVE: days_active,

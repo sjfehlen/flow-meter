@@ -14,21 +14,12 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-
-def _validate_date(date_str: str) -> bool:
-    """Return True if date_str is a valid MM/DD/YY date."""
-    if not date_str:
-        return True
-    try:
-        datetime.strptime(date_str, "%m/%d/%y")
-        return True
-    except ValueError:
-        return False
-
-
-def _to_iso(date_str: str) -> str:
-    """Convert DD/MM/YY to YYYY-MM-DD for internal storage."""
-    return datetime.strptime(date_str, "%m/%d/%y").strftime("%Y-%m-%d")
+# Cycle field prefixes for the 3 historical cycles
+_CYCLE_FIELDS = [
+    ("cycle1_start", "cycle1_end"),
+    ("cycle2_start", "cycle2_end"),
+    ("cycle3_start", "cycle3_end"),
+]
 
 
 class MenstrualCycleTrackerConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -36,140 +27,66 @@ class MenstrualCycleTrackerConfigFlow(ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    def __init__(self) -> None:
-        """Initialize config flow."""
-        self._name: str = ""
-        self._initial_cycles: list[dict[str, str]] = []
-
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Handle the initial step - name the tracker."""
+        """Handle the single-screen setup step."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            self._name = user_input["name"]
-            return await self.async_step_cycle1()
+            name = user_input["name"]
+
+            # Validate and collect cycles
+            initial_cycles: list[dict[str, str]] = []
+            for start_key, end_key in _CYCLE_FIELDS:
+                start = user_input.get(start_key, "")
+                end = user_input.get(end_key, "")
+
+                if end and not start:
+                    errors[end_key] = "end_without_start"
+                    continue
+
+                if start and end:
+                    start_dt = datetime.strptime(start, "%Y-%m-%d").date()
+                    end_dt = datetime.strptime(end, "%Y-%m-%d").date()
+                    if end_dt < start_dt:
+                        errors[end_key] = "end_before_start"
+                        continue
+
+                if start:
+                    initial_cycles.append({
+                        "start_date": start,
+                        "end_date": end or "",
+                    })
+
+            if not errors:
+                # Sort ascending (oldest first) so cycles[-1] is the most
+                # recent, matching the append behaviour of log_period_start.
+                initial_cycles.sort(key=lambda c: c["start_date"])
+                return self.async_create_entry(
+                    title=name,
+                    data={
+                        "name": name,
+                        "initial_cycles": initial_cycles,
+                    },
+                )
 
         schema = vol.Schema(
             {
-                vol.Required("name", default="My Cycle"): str,
+                vol.Required("name", default="My Cycle"): selector.TextSelector(),
+                # Most recent cycle
+                vol.Optional("cycle1_start"): selector.DateSelector(),
+                vol.Optional("cycle1_end"): selector.DateSelector(),
+                # Second most recent cycle
+                vol.Optional("cycle2_start"): selector.DateSelector(),
+                vol.Optional("cycle2_end"): selector.DateSelector(),
+                # Third most recent cycle (oldest)
+                vol.Optional("cycle3_start"): selector.DateSelector(),
+                vol.Optional("cycle3_end"): selector.DateSelector(),
             }
         )
         return self.async_show_form(
             step_id="user",
             data_schema=schema,
             errors=errors,
-        )
-
-    async def async_step_cycle1(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Handle most recent cycle entry."""
-        errors: dict[str, str] = {}
-
-        if user_input is not None:
-            start = user_input.get("start_date", "").strip()
-            end = user_input.get("end_date", "").strip()
-
-            if start and not _validate_date(start):
-                errors["start_date"] = "invalid_date"
-            elif end and not _validate_date(end):
-                errors["end_date"] = "invalid_date"
-            else:
-                if start:
-                    self._initial_cycles.append(
-                        {"start_date": _to_iso(start), "end_date": _to_iso(end) if end else ""}
-                    )
-                return await self.async_step_cycle2()
-
-        schema = vol.Schema(
-            {
-                vol.Optional("start_date", default=""): str,
-                vol.Optional("end_date", default=""): str,
-            }
-        )
-        return self.async_show_form(
-            step_id="cycle1",
-            data_schema=schema,
-            errors=errors,
-            description_placeholders={"cycle_num": "1 (most recent)"},
-        )
-
-    async def async_step_cycle2(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Handle second most recent cycle entry."""
-        errors: dict[str, str] = {}
-
-        if user_input is not None:
-            start = user_input.get("start_date", "").strip()
-            end = user_input.get("end_date", "").strip()
-
-            if start and not _validate_date(start):
-                errors["start_date"] = "invalid_date"
-            elif end and not _validate_date(end):
-                errors["end_date"] = "invalid_date"
-            else:
-                if start:
-                    self._initial_cycles.append(
-                        {"start_date": _to_iso(start), "end_date": _to_iso(end) if end else ""}
-                    )
-                return await self.async_step_cycle3()
-
-        schema = vol.Schema(
-            {
-                vol.Optional("start_date", default=""): str,
-                vol.Optional("end_date", default=""): str,
-            }
-        )
-        return self.async_show_form(
-            step_id="cycle2",
-            data_schema=schema,
-            errors=errors,
-            description_placeholders={"cycle_num": "2"},
-        )
-
-    async def async_step_cycle3(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Handle third most recent cycle entry."""
-        errors: dict[str, str] = {}
-
-        if user_input is not None:
-            start = user_input.get("start_date", "").strip()
-            end = user_input.get("end_date", "").strip()
-
-            if start and not _validate_date(start):
-                errors["start_date"] = "invalid_date"
-            elif end and not _validate_date(end):
-                errors["end_date"] = "invalid_date"
-            else:
-                if start:
-                    self._initial_cycles.append(
-                        {"start_date": _to_iso(start), "end_date": _to_iso(end) if end else ""}
-                    )
-                # Sort cycles by start date descending (most recent first)
-                self._initial_cycles.sort(
-                    key=lambda c: c["start_date"], reverse=True
-                )
-                return self.async_create_entry(
-                    title=self._name,
-                    data={
-                        "name": self._name,
-                        "initial_cycles": self._initial_cycles,
-                    },
-                )
-
-        schema = vol.Schema(
-            {
-                vol.Optional("start_date", default=""): str,
-                vol.Optional("end_date", default=""): str,
-            }
-        )
-        return self.async_show_form(
-            step_id="cycle3",
-            data_schema=schema,
-            errors=errors,
-            description_placeholders={"cycle_num": "3 (oldest)"},
         )

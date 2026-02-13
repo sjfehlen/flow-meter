@@ -2,39 +2,31 @@
   "config": {
     "step": {
       "user": {
-        "title": "Menstrual Cycle Tracker",
-        "description": "Give your tracker a name. You can add multiple trackers for different people.",
+        "title": "Menstrual Cycle Tracker Setup",
+        "description": "Set up your cycle tracker below. To improve prediction accuracy, enter up to 3 past periods. The more history you provide, the better the predictions will be. All date fields are optional \u2014 leave them blank to skip.",
         "data": {
-          "name": "Tracker Name"
-        }
-      },
-      "cycle1": {
-        "title": "Most Recent Cycle",
-        "description": "Enter your most recent period dates (optional). Leave blank to skip.",
-        "data": {
-          "start_date": "Start Date (MM/DD/YY)",
-          "end_date": "End Date (MM/DD/YY)"
-        }
-      },
-      "cycle2": {
-        "title": "Second Most Recent Cycle",
-        "description": "Enter your second most recent period dates (optional). Leave blank to skip.",
-        "data": {
-          "start_date": "Start Date (MM/DD/YY)",
-          "end_date": "End Date (MM/DD/YY)"
-        }
-      },
-      "cycle3": {
-        "title": "Third Most Recent Cycle",
-        "description": "Enter your third most recent period dates (optional). Leave blank to skip.",
-        "data": {
-          "start_date": "Start Date (MM/DD/YY)",
-          "end_date": "End Date (MM/DD/YY)"
+          "name": "Tracker Name",
+          "cycle1_start": "Most Recent Period \u2014 Start Date",
+          "cycle1_end": "Most Recent Period \u2014 End Date",
+          "cycle2_start": "2nd Most Recent Period \u2014 Start Date",
+          "cycle2_end": "2nd Most Recent Period \u2014 End Date",
+          "cycle3_start": "3rd Most Recent Period \u2014 Start Date",
+          "cycle3_end": "3rd Most Recent Period \u2014 End Date"
+        },
+        "data_description": {
+          "name": "A name for this tracker (e.g. My Cycle). You can create separate trackers for different people.",
+          "cycle1_start": "The first day you started bleeding during your most recent period.",
+          "cycle1_end": "The last day of bleeding for that period. Leave blank if it is still ongoing.",
+          "cycle2_start": "The first day of bleeding for the period before that.",
+          "cycle2_end": "The last day of bleeding for that period.",
+          "cycle3_start": "The first day of bleeding for your third most recent period.",
+          "cycle3_end": "The last day of bleeding for that period."
         }
       }
     },
     "error": {
-      "invalid_date": "Invalid date format. Use MM/DD/YY (e.g. 02/12/26)."
+      "end_without_start": "An end date was provided without a start date. Please enter the start date first.",
+      "end_before_start": "The end date must be after the start date."
     },
     "abort": {
       "already_configured": "This tracker is already configured."

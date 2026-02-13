@@ -157,6 +157,7 @@ def _register_services(hass: HomeAssistant) -> None:
             call.data["symptom"],
             call.data.get("severity", ""),
         )
+        async_dispatcher_send(hass, f"{SIGNAL_UPDATE}_{eid}")
 
     hass.services.async_register(
         DOMAIN, SERVICE_LOG_PERIOD_START, handle_log_period_start, schema=SERVICE_LOG_PERIOD_SCHEMA
@@ -277,21 +278,23 @@ class CycleData:
 
     @property
     def average_cycle_length(self) -> int:
-        """Calculate average cycle length from last 3 completed cycles."""
-        completed = self.completed_cycles
-        if len(completed) < 2:
-            return DEFAULT_CYCLE_LENGTH
-        # Need at least 2 cycles to compute a cycle length (gap between starts)
+        """Calculate average cycle length from last 3 cycle intervals.
+
+        Uses all cycles with a start date (not just completed ones) because
+        cycle length is the interval between consecutive start dates and does
+        not require an end date.
+        """
         starts = []
-        for c in completed:
-            try:
-                starts.append(datetime.strptime(c["start_date"], "%Y-%m-%d").date())
-            except (ValueError, KeyError):
-                continue
+        for c in self.cycles:
+            s = c.get("start_date")
+            if s:
+                try:
+                    starts.append(datetime.strptime(s, "%Y-%m-%d").date())
+                except ValueError:
+                    continue
         starts.sort()
         if len(starts) < 2:
             return DEFAULT_CYCLE_LENGTH
-        # Use last 3 intervals
         intervals = [
             (starts[i + 1] - starts[i]).days for i in range(len(starts) - 1)
         ]
@@ -300,7 +303,7 @@ class CycleData:
 
     @property
     def average_period_length(self) -> int:
-        """Calculate average period length from completed cycles."""
+        """Calculate average period length from last 3 completed cycles."""
         completed = self.completed_cycles
         if not completed:
             return DEFAULT_PERIOD_LENGTH
@@ -314,7 +317,8 @@ class CycleData:
                 continue
         if not lengths:
             return DEFAULT_PERIOD_LENGTH
-        return round(sum(lengths) / len(lengths))
+        recent = lengths[-3:]
+        return round(sum(recent) / len(recent))
 
     @property
     def current_cycle_day(self) -> int | None:
