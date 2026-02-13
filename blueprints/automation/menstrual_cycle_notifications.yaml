@@ -1,0 +1,261 @@
+blueprint:
+  name: Menstrual Cycle Tracker - Notifications
+  description: >
+    Send notifications for cycle events: period due soon, period started/ended,
+    fertile window, PMS window, and ovulation phase. Each notification type can
+    be individually enabled or disabled.
+  domain: automation
+  input:
+
+    # ── Entities ─────────────────────────────────────────────────────────────
+    period_active_sensor:
+      name: Period Active (Binary Sensor)
+      description: "binary_sensor.[name]_period_active"
+      selector:
+        entity:
+          domain: binary_sensor
+
+    next_period_sensor:
+      name: Next Period (Sensor)
+      description: "sensor.[name]_next_period — must have days_until_next_period attribute"
+      selector:
+        entity:
+          domain: sensor
+
+    fertile_window_sensor:
+      name: Fertile Window (Sensor)
+      description: "sensor.[name]_fertile_window"
+      selector:
+        entity:
+          domain: sensor
+
+    current_phase_sensor:
+      name: Current Phase (Sensor)
+      description: "sensor.[name]_current_phase"
+      selector:
+        entity:
+          domain: sensor
+
+    # ── Notification service ──────────────────────────────────────────────────
+    notify_service:
+      name: Notification Service
+      description: >
+        The service to call for notifications, e.g. notify.mobile_app_my_phone
+        or notify.notify for the default service.
+      default: notify.notify
+      selector:
+        text:
+
+    # ── Daily check time ──────────────────────────────────────────────────────
+    daily_check_time:
+      name: Daily Check Time
+      description: Time each day to check for upcoming period / PMS window.
+      default: "08:00:00"
+      selector:
+        time:
+
+    # ── Period due soon ───────────────────────────────────────────────────────
+    enable_period_due:
+      name: Notify — Period Due Soon
+      description: Send a notification when your period is predicted N days away.
+      default: true
+      selector:
+        boolean:
+
+    period_warning_days:
+      name: Period Warning (Days Before)
+      description: How many days before the predicted period to send the alert.
+      default: 2
+      selector:
+        number:
+          min: 1
+          max: 7
+          unit_of_measurement: days
+
+    # ── Period started ────────────────────────────────────────────────────────
+    enable_period_started:
+      name: Notify — Period Started
+      description: Send a notification when the period active sensor turns on.
+      default: true
+      selector:
+        boolean:
+
+    # ── Period ended ──────────────────────────────────────────────────────────
+    enable_period_ended:
+      name: Notify — Period Ended
+      description: Send a notification when the period active sensor turns off.
+      default: true
+      selector:
+        boolean:
+
+    # ── Fertile window ────────────────────────────────────────────────────────
+    enable_fertile_window:
+      name: Notify — Fertile Window Started
+      description: Send a notification when the fertile window begins.
+      default: true
+      selector:
+        boolean:
+
+    # ── PMS window ────────────────────────────────────────────────────────────
+    enable_pms_window:
+      name: Notify — PMS Window
+      description: Send a daily notification during the 5-day PMS window.
+      default: true
+      selector:
+        boolean:
+
+    # ── Ovulation phase ───────────────────────────────────────────────────────
+    enable_ovulation:
+      name: Notify — Ovulation Phase Started
+      description: Send a notification when the current phase changes to Ovulation.
+      default: false
+      selector:
+        boolean:
+
+
+# ── Triggers ──────────────────────────────────────────────────────────────────
+trigger:
+
+  # Period started
+  - platform: state
+    entity_id: !input period_active_sensor
+    to: "on"
+    id: period_started
+
+  # Period ended
+  - platform: state
+    entity_id: !input period_active_sensor
+    to: "off"
+    id: period_ended
+
+  # Fertile window began
+  - platform: state
+    entity_id: !input fertile_window_sensor
+    to: "Yes"
+    id: fertile_window
+
+  # Ovulation phase
+  - platform: state
+    entity_id: !input current_phase_sensor
+    to: "Ovulation"
+    id: ovulation
+
+  # Daily check (period due soon + PMS window)
+  - platform: time
+    at: !input daily_check_time
+    id: daily_check
+
+
+# ── Variables ─────────────────────────────────────────────────────────────────
+variables:
+  period_active_sensor: !input period_active_sensor
+  next_period_sensor: !input next_period_sensor
+  fertile_window_sensor: !input fertile_window_sensor
+  current_phase_sensor: !input current_phase_sensor
+  notify_service: !input notify_service
+  period_warning_days: !input period_warning_days
+  enable_period_due: !input enable_period_due
+  enable_period_started: !input enable_period_started
+  enable_period_ended: !input enable_period_ended
+  enable_fertile_window: !input enable_fertile_window
+  enable_pms_window: !input enable_pms_window
+  enable_ovulation: !input enable_ovulation
+  days_until: >
+    {{ state_attr(next_period_sensor, 'days_until_next_period') | int(-1) }}
+
+
+# ── Actions ───────────────────────────────────────────────────────────────────
+action:
+  - choose:
+
+      # ── Period started ──────────────────────────────────────────────────────
+      - conditions:
+          - condition: trigger
+            id: period_started
+          - condition: template
+            value_template: "{{ enable_period_started }}"
+        sequence:
+          - service: "{{ notify_service }}"
+            data:
+              title: "Period Started"
+              message: >
+                Your period has started today. Take care of yourself 💙
+
+      # ── Period ended ────────────────────────────────────────────────────────
+      - conditions:
+          - condition: trigger
+            id: period_ended
+          - condition: template
+            value_template: "{{ enable_period_ended }}"
+        sequence:
+          - service: "{{ notify_service }}"
+            data:
+              title: "Period Ended"
+              message: >
+                Your period has ended. Next period predicted:
+                {{ states(next_period_sensor) }}.
+
+      # ── Fertile window ──────────────────────────────────────────────────────
+      - conditions:
+          - condition: trigger
+            id: fertile_window
+          - condition: template
+            value_template: "{{ enable_fertile_window }}"
+        sequence:
+          - service: "{{ notify_service }}"
+            data:
+              title: "Fertile Window"
+              message: >
+                You have entered your fertile window today.
+
+      # ── Ovulation phase ─────────────────────────────────────────────────────
+      - conditions:
+          - condition: trigger
+            id: ovulation
+          - condition: template
+            value_template: "{{ enable_ovulation }}"
+        sequence:
+          - service: "{{ notify_service }}"
+            data:
+              title: "Ovulation Phase"
+              message: >
+                Your cycle has entered the Ovulation phase.
+
+      # ── Daily check: period due soon + PMS window ──────────────────────────
+      # Both checks run independently so both can fire on the same day.
+      - conditions:
+          - condition: trigger
+            id: daily_check
+        sequence:
+
+          # Period due soon
+          - if:
+              - condition: template
+                value_template: >
+                  {{ enable_period_due and days_until == period_warning_days | int }}
+            then:
+              - service: "{{ notify_service }}"
+                data:
+                  title: "Period Due Soon"
+                  message: >
+                    Your period is predicted to start in
+                    {{ days_until }} day{% if days_until != 1 %}s{% endif %}
+                    ({{ states(next_period_sensor) }}).
+
+          # PMS window — independent check, can fire same day as period-due
+          - if:
+              - condition: template
+                value_template: >
+                  {{ enable_pms_window and days_until >= 0 and days_until <= 5 }}
+            then:
+              - service: "{{ notify_service }}"
+                data:
+                  title: "PMS Window"
+                  message: >
+                    You are in your PMS window —
+                    {% if days_until == 0 %}period expected today.
+                    {% else %}{{ days_until }} day{% if days_until != 1 %}s{% endif %} until your next period.
+                    {% endif %}
+
+mode: parallel
+max: 5
