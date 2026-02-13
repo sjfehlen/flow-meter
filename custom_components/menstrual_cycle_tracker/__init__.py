@@ -2,9 +2,7 @@
 from __future__ import annotations
 
 import logging
-import shutil
 from datetime import date, datetime, timedelta
-from pathlib import Path
 from typing import Any
 
 import voluptuous as vol
@@ -55,23 +53,9 @@ SERVICE_LOG_SYMPTOM_SCHEMA = vol.Schema(
 )
 
 
-def _install_blueprints(hass: HomeAssistant) -> None:
-    """Copy bundled blueprints to /config/blueprints/automation/ if not present."""
-    src_dir = Path(__file__).parent / "blueprints"
-    dst_dir = Path(hass.config.config_dir) / "blueprints" / "automation" / DOMAIN
-    dst_dir.mkdir(parents=True, exist_ok=True)
-    for src_file in src_dir.glob("*.yaml"):
-        dst_file = dst_dir / src_file.name
-        if not dst_file.exists():
-            shutil.copy2(src_file, dst_file)
-            _LOGGER.info("Installed blueprint: %s", dst_file)
-
-
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Menstrual Cycle Tracker from a config entry."""
     hass.data.setdefault(DOMAIN, {})
-
-    await hass.async_add_executor_job(_install_blueprints, hass)
 
     cycle_data = CycleData(hass, entry)
     await cycle_data.async_load()
