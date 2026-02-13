@@ -1,7 +1,18 @@
 log_period_start:
   name: Log Period Start
-  description: Log the start of a menstrual period.
+  description: >
+    Log the start of a menstrual period. If you have multiple trackers,
+    specify the tracker name to target the right person.
   fields:
+    tracker:
+      name: Tracker
+      description: >
+        Name of the tracker to log to (e.g. "Alex"). Required when multiple
+        trackers are configured; omit if you only have one.
+      required: false
+      example: "Alex"
+      selector:
+        text:
     date:
       name: Date
       description: "Date the period started (DD/MM/YY, e.g. 12/02/26). Defaults to today if omitted."
@@ -12,8 +23,19 @@ log_period_start:
 
 log_period_end:
   name: Log Period End
-  description: Log the end of a menstrual period.
+  description: >
+    Log the end of a menstrual period. If you have multiple trackers,
+    specify the tracker name to target the right person.
   fields:
+    tracker:
+      name: Tracker
+      description: >
+        Name of the tracker to log to (e.g. "Alex"). Required when multiple
+        trackers are configured; omit if you only have one.
+      required: false
+      example: "Alex"
+      selector:
+        text:
     date:
       name: Date
       description: "Date the period ended (DD/MM/YY, e.g. 12/02/26). Defaults to today if omitted."
@@ -24,8 +46,19 @@ log_period_end:
 
 log_symptom:
   name: Log Symptom
-  description: Log a symptom associated with the cycle.
+  description: >
+    Log a symptom associated with the cycle. If you have multiple trackers,
+    specify the tracker name to target the right person.
   fields:
+    tracker:
+      name: Tracker
+      description: >
+        Name of the tracker to log to (e.g. "Alex"). Required when multiple
+        trackers are configured; omit if you only have one.
+      required: false
+      example: "Alex"
+      selector:
+        text:
     symptom:
       name: Symptom
       description: Name of the symptom (e.g. cramps, headache, fatigue).

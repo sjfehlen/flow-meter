@@ -39,12 +39,14 @@ PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR]
 
 SERVICE_LOG_PERIOD_SCHEMA = vol.Schema(
     {
+        vol.Optional("tracker"): cv.string,
         vol.Optional("date"): cv.string,
     }
 )
 
 SERVICE_LOG_SYMPTOM_SCHEMA = vol.Schema(
     {
+        vol.Optional("tracker"): cv.string,
         vol.Required("symptom"): cv.string,
         vol.Optional("severity"): vol.In(["mild", "moderate", "severe"]),
         vol.Optional("date"): cv.string,
@@ -76,59 +78,99 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
+    # Register services once globally; subsequent entries reuse the same handlers.
+    if not hass.services.has_service(DOMAIN, SERVICE_LOG_PERIOD_START):
+        _register_services(hass)
+
+    return True
+
+
+def _resolve_tracker(hass: HomeAssistant, call: ServiceCall) -> tuple[CycleData | None, str | None]:
+    """Return (CycleData, entry_id) for the targeted tracker, or (None, None) on error."""
+    trackers: dict[str, tuple[str, CycleData]] = {}
+    for eid, cd in hass.data[DOMAIN].items():
+        config_entry = hass.config_entries.async_get_entry(eid)
+        if config_entry:
+            name = config_entry.data.get("name", eid).lower()
+            trackers[name] = (eid, cd)
+
+    requested = call.data.get("tracker", "").strip().lower()
+
+    if requested:
+        if requested not in trackers:
+            available = ", ".join(trackers.keys()) or "none"
+            _LOGGER.error(
+                "Tracker '%s' not found. Available trackers: %s", requested, available
+            )
+            return None, None
+        eid, cd = trackers[requested]
+        return cd, eid
+
+    if len(trackers) == 1:
+        eid, cd = next(iter(trackers.values()))
+        return cd, eid
+
+    available = ", ".join(trackers.keys())
+    _LOGGER.error(
+        "Multiple trackers configured (%s). Specify 'tracker' in the service call.", available
+    )
+    return None, None
+
+
+def _register_services(hass: HomeAssistant) -> None:
+    """Register domain services (called once when the first entry loads)."""
+
     async def handle_log_period_start(call: ServiceCall) -> None:
+        cd, eid = _resolve_tracker(hass, call)
+        if cd is None:
+            return
         date_str = call.data.get("date", date.today().strftime("%d/%m/%y"))
         try:
             period_date = datetime.strptime(date_str, "%d/%m/%y").date()
         except ValueError:
             _LOGGER.error("Invalid date format: %s. Use DD/MM/YY (e.g. 12/02/26).", date_str)
             return
-        await cycle_data.log_period_start(period_date)
-        async_dispatcher_send(hass, f"{SIGNAL_UPDATE}_{entry.entry_id}")
+        await cd.log_period_start(period_date)
+        async_dispatcher_send(hass, f"{SIGNAL_UPDATE}_{eid}")
 
     async def handle_log_period_end(call: ServiceCall) -> None:
+        cd, eid = _resolve_tracker(hass, call)
+        if cd is None:
+            return
         date_str = call.data.get("date", date.today().strftime("%d/%m/%y"))
         try:
             period_date = datetime.strptime(date_str, "%d/%m/%y").date()
         except ValueError:
             _LOGGER.error("Invalid date format: %s. Use DD/MM/YY (e.g. 12/02/26).", date_str)
             return
-        await cycle_data.log_period_end(period_date)
-        async_dispatcher_send(hass, f"{SIGNAL_UPDATE}_{entry.entry_id}")
+        await cd.log_period_end(period_date)
+        async_dispatcher_send(hass, f"{SIGNAL_UPDATE}_{eid}")
 
     async def handle_log_symptom(call: ServiceCall) -> None:
+        cd, eid = _resolve_tracker(hass, call)
+        if cd is None:
+            return
         date_str = call.data.get("date", date.today().strftime("%d/%m/%y"))
         try:
             symptom_date = datetime.strptime(date_str, "%d/%m/%y").date()
         except ValueError:
             _LOGGER.error("Invalid date format: %s. Use DD/MM/YY (e.g. 12/02/26).", date_str)
             return
-        await cycle_data.log_symptom(
+        await cd.log_symptom(
             symptom_date,
             call.data["symptom"],
             call.data.get("severity", ""),
         )
 
     hass.services.async_register(
-        DOMAIN,
-        SERVICE_LOG_PERIOD_START,
-        handle_log_period_start,
-        schema=SERVICE_LOG_PERIOD_SCHEMA,
+        DOMAIN, SERVICE_LOG_PERIOD_START, handle_log_period_start, schema=SERVICE_LOG_PERIOD_SCHEMA
     )
     hass.services.async_register(
-        DOMAIN,
-        SERVICE_LOG_PERIOD_END,
-        handle_log_period_end,
-        schema=SERVICE_LOG_PERIOD_SCHEMA,
+        DOMAIN, SERVICE_LOG_PERIOD_END, handle_log_period_end, schema=SERVICE_LOG_PERIOD_SCHEMA
     )
     hass.services.async_register(
-        DOMAIN,
-        SERVICE_LOG_SYMPTOM,
-        handle_log_symptom,
-        schema=SERVICE_LOG_SYMPTOM_SCHEMA,
+        DOMAIN, SERVICE_LOG_SYMPTOM, handle_log_symptom, schema=SERVICE_LOG_SYMPTOM_SCHEMA
     )
-
-    return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -136,8 +178,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id)
-        for service in [SERVICE_LOG_PERIOD_START, SERVICE_LOG_PERIOD_END, SERVICE_LOG_SYMPTOM]:
-            hass.services.async_remove(DOMAIN, service)
+        # Only remove services when the last tracker is unloaded.
+        if not hass.data[DOMAIN]:
+            for service in [SERVICE_LOG_PERIOD_START, SERVICE_LOG_PERIOD_END, SERVICE_LOG_SYMPTOM]:
+                hass.services.async_remove(DOMAIN, service)
     return unload_ok
 
 
