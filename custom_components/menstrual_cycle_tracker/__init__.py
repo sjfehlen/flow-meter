@@ -336,3 +336,9 @@ class CycleData:
         if days_until is None:
             return False
         return 0 <= days_until <= 5
+
+    @property
+    def symptoms_today(self) -> list[dict[str, str]]:
+        """Return symptoms logged today."""
+        today = date.today().isoformat()
+        return [s for s in self.symptoms if s.get("date") == today]

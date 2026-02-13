@@ -38,6 +38,7 @@ async def async_setup_entry(
             PeriodLengthSensor(cycle_data, entry, name),
             CycleLengthSensor(cycle_data, entry, name),
             FertileWindowSensor(cycle_data, entry, name),
+            TodaysSymptomsSensor(cycle_data, entry, name),
         ]
     )
 
@@ -179,3 +180,23 @@ class FertileWindowSensor(CycleTrackerSensorBase):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         return {ATTR_IS_PMS_WINDOW: self._cycle_data.is_pms_window}
+
+
+class TodaysSymptomsSensor(CycleTrackerSensorBase):
+    """Sensor showing symptoms logged today."""
+
+    _attr_icon = "mdi:clipboard-pulse"
+    _attr_native_unit_of_measurement = "symptoms"
+
+    def __init__(self, cycle_data: Any, entry: ConfigEntry, tracker_name: str) -> None:
+        super().__init__(cycle_data, entry, tracker_name)
+        self._attr_unique_id = f"{entry.entry_id}_todays_symptoms"
+        self._attr_name = "Today's Symptoms"
+
+    @property
+    def native_value(self) -> int:
+        return len(self._cycle_data.symptoms_today)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {"symptoms": self._cycle_data.symptoms_today}
