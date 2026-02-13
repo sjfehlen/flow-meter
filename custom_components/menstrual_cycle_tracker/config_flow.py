@@ -16,14 +16,19 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def _validate_date(date_str: str) -> bool:
-    """Return True if date_str is a valid YYYY-MM-DD date."""
+    """Return True if date_str is a valid DD/MM/YY date."""
     if not date_str:
         return True
     try:
-        datetime.strptime(date_str, "%Y-%m-%d")
+        datetime.strptime(date_str, "%d/%m/%y")
         return True
     except ValueError:
         return False
+
+
+def _to_iso(date_str: str) -> str:
+    """Convert DD/MM/YY to YYYY-MM-DD for internal storage."""
+    return datetime.strptime(date_str, "%d/%m/%y").strftime("%Y-%m-%d")
 
 
 class MenstrualCycleTrackerConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -74,7 +79,7 @@ class MenstrualCycleTrackerConfigFlow(ConfigFlow, domain=DOMAIN):
             else:
                 if start:
                     self._initial_cycles.append(
-                        {"start_date": start, "end_date": end}
+                        {"start_date": _to_iso(start), "end_date": _to_iso(end) if end else ""}
                     )
                 return await self.async_step_cycle2()
 
@@ -108,7 +113,7 @@ class MenstrualCycleTrackerConfigFlow(ConfigFlow, domain=DOMAIN):
             else:
                 if start:
                     self._initial_cycles.append(
-                        {"start_date": start, "end_date": end}
+                        {"start_date": _to_iso(start), "end_date": _to_iso(end) if end else ""}
                     )
                 return await self.async_step_cycle3()
 
@@ -142,7 +147,7 @@ class MenstrualCycleTrackerConfigFlow(ConfigFlow, domain=DOMAIN):
             else:
                 if start:
                     self._initial_cycles.append(
-                        {"start_date": start, "end_date": end}
+                        {"start_date": _to_iso(start), "end_date": _to_iso(end) if end else ""}
                     )
                 # Sort cycles by start date descending (most recent first)
                 self._initial_cycles.sort(

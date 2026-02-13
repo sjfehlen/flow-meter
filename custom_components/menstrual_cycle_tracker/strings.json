@@ -12,29 +12,29 @@
         "title": "Most Recent Cycle",
         "description": "Enter your most recent period dates (optional). Leave blank to skip.",
         "data": {
-          "start_date": "Start Date (YYYY-MM-DD)",
-          "end_date": "End Date (YYYY-MM-DD)"
+          "start_date": "Start Date (DD/MM/YY)",
+          "end_date": "End Date (DD/MM/YY)"
         }
       },
       "cycle2": {
         "title": "Second Most Recent Cycle",
         "description": "Enter your second most recent period dates (optional). Leave blank to skip.",
         "data": {
-          "start_date": "Start Date (YYYY-MM-DD)",
-          "end_date": "End Date (YYYY-MM-DD)"
+          "start_date": "Start Date (DD/MM/YY)",
+          "end_date": "End Date (DD/MM/YY)"
         }
       },
       "cycle3": {
         "title": "Third Most Recent Cycle",
         "description": "Enter your third most recent period dates (optional). Leave blank to skip.",
         "data": {
-          "start_date": "Start Date (YYYY-MM-DD)",
-          "end_date": "End Date (YYYY-MM-DD)"
+          "start_date": "Start Date (DD/MM/YY)",
+          "end_date": "End Date (DD/MM/YY)"
         }
       }
     },
     "error": {
-      "invalid_date": "Invalid date format. Use YYYY-MM-DD (e.g. 2026-02-02)."
+      "invalid_date": "Invalid date format. Use DD/MM/YY (e.g. 12/02/26)."
     },
     "abort": {
       "already_configured": "This tracker is already configured."

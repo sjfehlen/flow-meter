@@ -61,31 +61,31 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     async def handle_log_period_start(call: ServiceCall) -> None:
-        date_str = call.data.get("date", date.today().isoformat())
+        date_str = call.data.get("date", date.today().strftime("%d/%m/%y"))
         try:
-            period_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            period_date = datetime.strptime(date_str, "%d/%m/%y").date()
         except ValueError:
-            _LOGGER.error("Invalid date format: %s. Use YYYY-MM-DD.", date_str)
+            _LOGGER.error("Invalid date format: %s. Use DD/MM/YY (e.g. 12/02/26).", date_str)
             return
         await cycle_data.log_period_start(period_date)
         async_dispatcher_send(hass, f"{SIGNAL_UPDATE}_{entry.entry_id}")
 
     async def handle_log_period_end(call: ServiceCall) -> None:
-        date_str = call.data.get("date", date.today().isoformat())
+        date_str = call.data.get("date", date.today().strftime("%d/%m/%y"))
         try:
-            period_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            period_date = datetime.strptime(date_str, "%d/%m/%y").date()
         except ValueError:
-            _LOGGER.error("Invalid date format: %s. Use YYYY-MM-DD.", date_str)
+            _LOGGER.error("Invalid date format: %s. Use DD/MM/YY (e.g. 12/02/26).", date_str)
             return
         await cycle_data.log_period_end(period_date)
         async_dispatcher_send(hass, f"{SIGNAL_UPDATE}_{entry.entry_id}")
 
     async def handle_log_symptom(call: ServiceCall) -> None:
-        date_str = call.data.get("date", date.today().isoformat())
+        date_str = call.data.get("date", date.today().strftime("%d/%m/%y"))
         try:
-            symptom_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            symptom_date = datetime.strptime(date_str, "%d/%m/%y").date()
         except ValueError:
-            _LOGGER.error("Invalid date format: %s. Use YYYY-MM-DD.", date_str)
+            _LOGGER.error("Invalid date format: %s. Use DD/MM/YY (e.g. 12/02/26).", date_str)
             return
         await cycle_data.log_symptom(
             symptom_date,
@@ -262,19 +262,26 @@ class CycleData:
 
     @property
     def current_cycle_day(self) -> int | None:
-        """Return current day in cycle (1-indexed)."""
+        """Return current day within the predicted cycle (1-indexed, wraps with cycle length)."""
         start = self.last_period_start
         if not start:
             return None
-        return (date.today() - start).days + 1
+        cycle_len = self.average_cycle_length
+        days_since = (date.today() - start).days
+        return (days_since % cycle_len) + 1
 
     @property
     def next_period_date(self) -> date | None:
-        """Predict the next period start date."""
+        """Predict the next future period start date."""
         start = self.last_period_start
         if not start:
             return None
-        return start + timedelta(days=self.average_cycle_length)
+        cycle_len = self.average_cycle_length
+        predicted = start + timedelta(days=cycle_len)
+        today = date.today()
+        while predicted <= today:
+            predicted += timedelta(days=cycle_len)
+        return predicted
 
     @property
     def days_until_next_period(self) -> int | None:

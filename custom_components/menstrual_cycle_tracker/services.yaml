@@ -4,9 +4,9 @@ log_period_start:
   fields:
     date:
       name: Date
-      description: "Date the period started (YYYY-MM-DD). Defaults to today if omitted."
+      description: "Date the period started (DD/MM/YY, e.g. 12/02/26). Defaults to today if omitted."
       required: false
-      example: "2026-02-02"
+      example: "12/02/26"
       selector:
         text:
 
@@ -16,9 +16,9 @@ log_period_end:
   fields:
     date:
       name: Date
-      description: "Date the period ended (YYYY-MM-DD). Defaults to today if omitted."
+      description: "Date the period ended (DD/MM/YY, e.g. 12/02/26). Defaults to today if omitted."
       required: false
-      example: "2026-02-06"
+      example: "12/02/26"
       selector:
         text:
 
@@ -46,8 +46,8 @@ log_symptom:
             - "severe"
     date:
       name: Date
-      description: "Date of the symptom (YYYY-MM-DD). Defaults to today if omitted."
+      description: "Date of the symptom (DD/MM/YY, e.g. 12/02/26). Defaults to today if omitted."
       required: false
-      example: "2026-02-02"
+      example: "12/02/26"
       selector:
         text:
