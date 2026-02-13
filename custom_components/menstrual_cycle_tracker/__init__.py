@@ -86,33 +86,44 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 def _resolve_tracker(hass: HomeAssistant, call: ServiceCall) -> tuple[CycleData | None, str | None]:
-    """Return (CycleData, entry_id) for the targeted tracker, or (None, None) on error."""
-    trackers: dict[str, tuple[str, CycleData]] = {}
-    for eid, cd in hass.data[DOMAIN].items():
-        config_entry = hass.config_entries.async_get_entry(eid)
-        if config_entry:
-            name = config_entry.data.get("name", eid).lower()
-            trackers[name] = (eid, cd)
+    """Return (CycleData, entry_id) for the targeted tracker, or (None, None) on error.
 
-    requested = call.data.get("tracker", "").strip().lower()
+    The 'tracker' field accepts either an entry_id (from the config_entry selector)
+    or a tracker name string (for use in automations/scripts).
+    """
+    loaded: dict[str, CycleData] = hass.data[DOMAIN]
+    requested = call.data.get("tracker", "").strip()
 
     if requested:
-        if requested not in trackers:
-            available = ", ".join(trackers.keys()) or "none"
-            _LOGGER.error(
-                "Tracker '%s' not found. Available trackers: %s", requested, available
-            )
-            return None, None
-        eid, cd = trackers[requested]
-        return cd, eid
+        # 1. Direct entry_id match (config_entry selector returns entry_id)
+        if requested in loaded:
+            return loaded[requested], requested
+        # 2. Name match (case-insensitive, for automations using plain text)
+        for eid, cd in loaded.items():
+            config_entry = hass.config_entries.async_get_entry(eid)
+            if config_entry and config_entry.data.get("name", "").lower() == requested.lower():
+                return cd, eid
+        available = ", ".join(
+            hass.config_entries.async_get_entry(e).data.get("name", e)
+            for e in loaded
+            if hass.config_entries.async_get_entry(e)
+        )
+        _LOGGER.error(
+            "Tracker '%s' not found. Available trackers: %s", requested, available or "none"
+        )
+        return None, None
 
-    if len(trackers) == 1:
-        eid, cd = next(iter(trackers.values()))
-        return cd, eid
+    if len(loaded) == 1:
+        eid = next(iter(loaded))
+        return loaded[eid], eid
 
-    available = ", ".join(trackers.keys())
+    available = ", ".join(
+        hass.config_entries.async_get_entry(e).data.get("name", e)
+        for e in loaded
+        if hass.config_entries.async_get_entry(e)
+    )
     _LOGGER.error(
-        "Multiple trackers configured (%s). Specify 'tracker' in the service call.", available
+        "Multiple trackers configured (%s). Select a tracker in the service call.", available
     )
     return None, None
 
