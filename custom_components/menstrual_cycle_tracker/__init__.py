@@ -328,20 +328,27 @@ class CycleData:
 
     @property
     def next_period_date(self) -> date | None:
-        """Predict the next future period start date."""
+        """Return the current predicted period start date.
+
+        Uses the same algorithm as days_overdue so both always refer to the
+        same cycle. The returned date may be in the past when the period is
+        overdue; use days_overdue to know how many days late it is.
+        """
         start = self.last_period_start
         if not start:
             return None
         cycle_len = self.average_cycle_length
         predicted = start + timedelta(days=cycle_len)
         today = date.today()
-        while predicted <= today:
+        # Advance until the NEXT prediction would still be in the future,
+        # leaving predicted at the current cycle's expected start date.
+        while predicted + timedelta(days=cycle_len) <= today:
             predicted += timedelta(days=cycle_len)
         return predicted
 
     @property
     def days_until_next_period(self) -> int | None:
-        """Return days until predicted next period."""
+        """Days until (positive) or since (negative) the predicted period start."""
         next_period = self.next_period_date
         if not next_period:
             return None
@@ -388,26 +395,19 @@ class CycleData:
 
     @property
     def days_overdue(self) -> int:
-        """Days since the most recently predicted period start that has passed.
+        """Days past the predicted period start.
 
-        Returns -1 if the period is active or the next predicted date is still
-        in the future. Returns 0 if today is the expected start day, 1 if one
-        day past, etc.
+        Returns -1 if the period is active or the predicted date is still in
+        the future. Returns 0 if today is the expected start day, positive N
+        if the period is N days late.
         """
         if self.is_period_active:
             return -1
-        start = self.last_period_start
-        if not start:
+        next_period = self.next_period_date
+        if not next_period:
             return -1
-        cycle_len = self.average_cycle_length
-        predicted = start + timedelta(days=cycle_len)
-        today = date.today()
-        # Walk to the most recent predicted start that is <= today
-        while predicted + timedelta(days=cycle_len) <= today:
-            predicted += timedelta(days=cycle_len)
-        if predicted > today:
-            return -1  # Not yet due
-        return (today - predicted).days  # 0 = due today, >0 = overdue
+        delta = (date.today() - next_period).days
+        return delta if delta >= 0 else -1
 
     @property
     def days_period_end_overdue(self) -> int:
