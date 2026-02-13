@@ -68,6 +68,20 @@ A privacy-focused Home Assistant integration for tracking menstrual cycles with 
 
 ---
 
+## 🔔 Notification Blueprint
+
+A separate blueprint repository is available for notification automations:
+
+**Repository:** [sjfehlen/cycle-tracker-blueprints](https://github.com/sjfehlen/cycle-tracker-blueprints)
+
+**Quick import:**
+- Settings → Blueprints → Import Blueprint
+- URL: `https://github.com/sjfehlen/cycle-tracker-blueprints/blob/main/blueprints/automation/menstrual_cycle_notifications.yaml`
+
+Or add to HACS → Automation → Custom Repositories → `https://github.com/sjfehlen/cycle-tracker-blueprints` → **Blueprint**
+
+---
+
 ## ⚙️ Setup Wizard
 
 ### Step 1: Name Your Tracker
