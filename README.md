@@ -443,12 +443,9 @@ A: All data stays on your device, so there's no data transmission. However, cons
 ## 🗺️ Roadmap
 
 - [x] Edit historical cycles via service
-- [ ] Import from CSV/JSON
 - [ ] Statistics card with charts
 - [ ] Symptom correlation tracking
-- [ ] Multi-language support
 - [x] Calendar entity with predicted periods
-- [ ] Apple Health export
 
 ---
 
